@@ -173,6 +173,59 @@
                     return '註冊失敗，請稍後再試';
             }
         }
+        document.addEventListener('DOMContentLoaded', function() {
+  const registerForm = document.querySelector('form');
+  const companyNameInput = document.querySelector('input[name="companyName"]');
+  const emailInput = document.querySelector('input[type="email"]');
+  const passwordInput = document.querySelector('input[name="password"]');
+  const confirmPasswordInput = document.querySelector('input[name="confirmPassword"]');
+  const registerBtn = document.querySelector('button[type="submit"]');
+  const successMsg = document.querySelector('.success-message');
+  const errorMsg = document.querySelector('.error-message');
+
+  // 檢查用戶是否已登入
+  checkAuthState(user => {
+    if (user) {
+      // 已登入，重定向到儀表板
+      window.location.href = 'dashboard.html';
+    }
+  });
+
+  // 處理註冊表單提交
+  registerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const companyName = companyNameInput.value;
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+    
+    // 簡單驗證
+    if (password !== confirmPassword) {
+      errorMsg.textContent = '兩次輸入的密碼不一致';
+      errorMsg.style.display = 'block';
+      return;
+    }
+    
+    // 顯示載入中
+    registerBtn.disabled = true;
+    
+    registerUser(companyName, email, password)
+      .then(() => {
+        // 註冊成功
+        successMsg.style.display = 'block';
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 2000);
+      })
+      .catch(error => {
+        // 註冊失敗
+        errorMsg.textContent = error.message;
+        errorMsg.style.display = 'block';
+        registerBtn.disabled = false;
+      });
+  });
+});
     </script>
 </body>
 </html>
