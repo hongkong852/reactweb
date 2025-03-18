@@ -145,6 +145,67 @@
                 console.error('Error signing out:', error);
             }
         });
+        document.addEventListener('DOMContentLoaded', function() {
+  const welcomeMsg = document.querySelector('.welcome-message');
+  const lastLoginEl = document.querySelector('.last-login');
+  const orderCountEl = document.querySelector('.order-count');
+  const monthlyRevenueEl = document.querySelector('.monthly-revenue');
+  const pendingOrdersEl = document.querySelector('.pending-orders');
+  const logoutBtn = document.querySelector('.logout-btn');
+  const loadingEl = document.querySelector('.loading');
+
+  // 檢查用戶是否已登入
+  checkAuthState(user => {
+    if (!user) {
+      // 未登入，重定向到登入頁
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    // 載入儀表板數據
+    loadingEl.style.display = 'block';
+    
+    getDashboardData()
+      .then(data => {
+        // 更新儀表板顯示
+        welcomeMsg.textContent = `歡迎回來，${data.companyName}`;
+        
+        if (data.lastLogin) {
+          const lastLoginDate = data.lastLogin.toDate();
+          lastLoginEl.textContent = lastLoginDate.toLocaleString('zh-TW');
+        } else {
+          lastLoginEl.textContent = '這是您的首次登入';
+        }
+        
+        orderCountEl.textContent = data.orderCount || 0;
+        monthlyRevenueEl.textContent = `$${data.monthlyRevenue || 0}`;
+        pendingOrdersEl.textContent = data.pendingOrders || 0;
+        
+        loadingEl.style.display = 'none';
+      })
+      .catch(error => {
+        console.error('載入數據失敗:', error);
+        loadingEl.style.display = 'none';
+        alert('載入數據失敗');
+      });
+  });
+
+  // 處理登出
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      logoutUser()
+        .then(() => {
+          window.location.href = 'index.html';
+        })
+        .catch(error => {
+          console.error('登出失敗:', error);
+          alert('登出失敗');
+        });
+    });
+  }
+});
     </script>
 </body>
 </html>
