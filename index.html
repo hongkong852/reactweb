@@ -67,6 +67,42 @@
             text-align: center;
             margin-top: 10px;
         }
+            .forgot-password {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .forgot-password a {
+            color: #666;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -90,7 +126,21 @@
             <a href="#" id="registerLink">還沒有帳號？點此註冊</a>
         </div>
     </div>
-
+    <!-- 忘記密碼彈窗 -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h3>重置密碼</h3>
+            <form id="resetPasswordForm">
+                <div class="form-group">
+                    <label for="resetEmail">請輸入您的電子郵件：</label>
+                    <input type="email" id="resetEmail" required>
+                </div>
+                <button type="submit">發送重置連結</button>
+            </form>
+            <p id="resetMessage" style="margin-top: 10px;"></p>
+        </div>
+    </div>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
@@ -169,6 +219,48 @@
             e.preventDefault();
             // 之後我們會添加註冊功能
             alert('註冊功能即將推出！');
+        });
+
+                // 添加忘記密碼相關功能
+        const forgotPasswordModal = document.getElementById('forgotPasswordModal');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        const closeModal = document.getElementById('closeModal');
+        const resetPasswordForm = document.getElementById('resetPasswordForm');
+        const resetMessage = document.getElementById('resetMessage');
+
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotPasswordModal.style.display = 'block';
+        });
+
+        closeModal.addEventListener('click', () => {
+            forgotPasswordModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === forgotPasswordModal) {
+                forgotPasswordModal.style.display = 'none';
+            }
+        });
+
+        resetPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+            
+            try {
+                await firebase.auth().sendPasswordResetEmail(email);
+                resetMessage.style.color = 'green';
+                resetMessage.textContent = '重置密碼連結已發送到您的信箱，請查收！';
+                
+                setTimeout(() => {
+                    forgotPasswordModal.style.display = 'none';
+                    resetPasswordForm.reset();
+                    resetMessage.textContent = '';
+                }, 3000);
+            } catch (error) {
+                resetMessage.style.color = 'red';
+                resetMessage.textContent = '發送失敗，請確認電子郵件是否正確。';
+            }
         });
     </script>
 </body>
