@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor 儀表板</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .welcome-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .logout-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Vendor 儀表板</h1>
+        <button id="logoutBtn" class="logout-btn">登出</button>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2>歡迎回來，<span id="companyName">載入中...</span></h2>
+            <p>上次登入時間：<span id="lastLogin">載入中...</span></p>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>訂單總數</h3>
+                <p>0</p>
+            </div>
+            <div class="stat-card">
+                <h3>本月營業額</h3>
+                <p>$0</p>
+            </div>
+            <div class="stat-card">
+                <h3>待處理訂單</h3>
+                <p>0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            // 使用相同的配置
+        };
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 檢查登入狀態
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (!user) {
+                // 如果未登入，重定向到登入頁面
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                // 獲取廠商資料
+                const vendorDoc = await db.collection('vendors').doc(user.uid).get();
+                if (vendorDoc.exists) {
+                    const vendorData = vendorDoc.data();
+                    document.getElementById('companyName').textContent = vendorData.companyName;
+                }
+
+                // 顯示最後登入時間
+                const lastLoginTime = user.metadata.lastSignInTime;
+                document.getElementById('lastLogin').textContent = new Date(lastLoginTime).toLocaleString();
+            } catch (error) {
+                console.error('Error fetching vendor data:', error);
+            }
+        });
+
+        // 登出功能
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await firebase.auth().signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+    </script>
+</body>
+</html>
