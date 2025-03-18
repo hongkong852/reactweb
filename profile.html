@@ -195,6 +195,74 @@
                 messageDiv.style.display = 'none';
             }, 3000);
         }
+        document.addEventListener('DOMContentLoaded', function() {
+  const profileForm = document.querySelector('form');
+  const companyNameInput = document.querySelector('input[name="companyName"]');
+  const emailInput = document.querySelector('input[name="email"]');
+  const phoneInput = document.querySelector('input[name="phone"]');
+  const addressInput = document.querySelector('input[name="address"]');
+  const descriptionInput = document.querySelector('textarea[name="description"]');
+  const saveBtn = document.querySelector('button[type="submit"]');
+  const successMsg = document.querySelector('.success-message');
+  const errorMsg = document.querySelector('.error-message');
+
+  // 檢查用戶是否已登入
+  checkAuthState(user => {
+    if (!user) {
+      // 未登入，重定向到登入頁
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    // 載入用戶資料
+    getCurrentVendorData()
+      .then(data => {
+        // 填充表單
+        companyNameInput.value = data.companyName || '';
+        emailInput.value = data.email || '';
+        phoneInput.value = data.phone || '';
+        addressInput.value = data.address || '';
+        descriptionInput.value = data.description || '';
+      })
+      .catch(error => {
+        console.error('載入用戶資料失敗:', error);
+        alert('載入用戶資料失敗');
+      });
+  });
+
+  // 處理表單提交
+  profileForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const profileData = {
+      companyName: companyNameInput.value,
+      phone: phoneInput.value,
+      address: addressInput.value,
+      description: descriptionInput.value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 禁用按鈕防止重複提交
+    saveBtn.disabled = true;
+    
+    updateVendorProfile(profileData)
+      .then(() => {
+        // 更新成功
+        successMsg.textContent = '個人資料已更新';
+        successMsg.style.display = 'block';
+        setTimeout(() => {
+          successMsg.style.display = 'none';
+        }, 3000);
+        saveBtn.disabled = false;
+      })
+      .catch(error => {
+        // 更新失敗
+        errorMsg.textContent = '更新失敗: ' + error.message;
+        errorMsg.style.display = 'block';
+        saveBtn.disabled = false;
+      });
+  });
+});
     </script>
 </body>
 </html>
