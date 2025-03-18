@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人資料設定</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .profile-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .back-btn {
+            background-color: #666;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .message {
+            margin-top: 1rem;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>個人資料設定</h1>
+        <a href="dashboard.html" class="btn back-btn">返回儀表板</a>
+    </div>
+
+    <div class="container">
+        <div class="profile-card">
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="companyName">公司名稱</label>
+                    <input type="text" id="companyName" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="phone">聯絡電話</label>
+                    <input type="tel" id="phone">
+                </div>
+                <div class="form-group">
+                    <label for="address">公司地址</label>
+                    <textarea id="address" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="description">公司簡介</label>
+                    <textarea id="description" rows="5"></textarea>
+                </div>
+                <button type="submit" class="btn save-btn">儲存變更</button>
+            </form>
+            <div id="message" class="message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            // 使用相同的配置
+        };
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 獲取表單元素
+        const profileForm = document.getElementById('profileForm');
+        const messageDiv = document.getElementById('message');
+
+        // 檢查登入狀態並載入資料
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const vendorDoc = await db.collection('vendors').doc(user.uid).get();
+                if (vendorDoc.exists) {
+                    const data = vendorDoc.data();
+                    document.getElementById('companyName').value = data.companyName || '';
+                    document.getElementById('email').value = user.email;
+                    document.getElementById('phone').value = data.phone || '';
+                    document.getElementById('address').value = data.address || '';
+                    document.getElementById('description').value = data.description || '';
+                }
+            } catch (error) {
+                showMessage('載入資料失敗，請重新整理頁面。', false);
+            }
+        });
+
+        // 處理表單提交
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const user = firebase.auth().currentUser;
+            if (!user) return;
+
+            const updateData = {
+                companyName: document.getElementById('companyName').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                description: document.getElementById('description').value,
+                updatedAt: new Date()
+            };
+
+            try {
+                await db.collection('vendors').doc(user.uid).update(updateData);
+                showMessage('資料更新成功！', true);
+            } catch (error) {
+                showMessage('資料更新失敗，請稍後再試。', false);
+            }
+        });
+
+        // 顯示訊息
+        function showMessage(message, isSuccess) {
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${isSuccess ? 'success' : 'error'}`;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
