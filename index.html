@@ -1,44 +1,71 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <!-- 前面的 head 部分保持不變 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor 登入系統</title>
     <style>
-        /* 原有的樣式保持不變，添加以下新樣式 */
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 15px;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .forgot-password a {
-            color: #666;
-            font-size: 14px;
-            text-decoration: none;
-        }
-        .forgot-password a:hover {
-            text-decoration: underline;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-        .modal-content {
+        .login-container {
             background-color: white;
-            margin: 15% auto;
             padding: 20px;
             border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             width: 300px;
-            position: relative;
         }
-        .close-btn {
-            position: absolute;
-            right: 10px;
-            top: 10px;
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-message {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -54,81 +81,94 @@
                 <label for="password">密碼：</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <div class="forgot-password">
-                <a href="#" id="forgotPasswordLink">忘記密碼？</a>
-            </div>
             <button type="submit">登入</button>
             <div id="loading" class="loading">登入中...</div>
             <p id="errorMessage" class="error-message"></p>
             <p id="successMessage" class="success-message">登入成功！</p>
         </form>
         <div class="register-link">
-            <a href="register.html">還沒有帳號？點此註冊</a>
-        </div>
-    </div>
-
-    <!-- 忘記密碼彈窗 -->
-    <div id="forgotPasswordModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeModal">&times;</span>
-            <h3>重置密碼</h3>
-            <form id="resetPasswordForm">
-                <div class="form-group">
-                    <label for="resetEmail">請輸入您的電子郵件：</label>
-                    <input type="email" id="resetEmail" required>
-                </div>
-                <button type="submit">發送重置連結</button>
-            </form>
-            <p id="resetMessage" style="margin-top: 10px;"></p>
+            <a href="#" id="registerLink">還沒有帳號？點此註冊</a>
         </div>
     </div>
 
     <!-- Firebase SDK -->
-    <!-- 原有的 script 引入保持不變 -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
 
     <script>
-        // 原有的 Firebase 配置和初始化保持不變
+        // 你的Firebase配置
+        const firebaseConfig = {
+            // 這裡需要填入你從Firebase獲得的配置信息
+            apiKey: "你的apiKey",
+            authDomain: "你的authDomain",
+            projectId: "你的projectId",
+            storageBucket: "你的storageBucket",
+            messagingSenderId: "你的messagingSenderId",
+            appId: "你的appId"
+        };
 
-        // 添加忘記密碼相關功能
-        const forgotPasswordModal = document.getElementById('forgotPasswordModal');
-        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-        const closeModal = document.getElementById('closeModal');
-        const resetPasswordForm = document.getElementById('resetPasswordForm');
-        const resetMessage = document.getElementById('resetMessage');
+        // 初始化Firebase
+        firebase.initializeApp(firebaseConfig);
 
-        forgotPasswordLink.addEventListener('click', (e) => {
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const loading = document.getElementById('loading');
+        const registerLink = document.getElementById('registerLink');
+
+        // 登入表單提交
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            forgotPasswordModal.style.display = 'block';
-        });
-
-        closeModal.addEventListener('click', () => {
-            forgotPasswordModal.style.display = 'none';
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === forgotPasswordModal) {
-                forgotPasswordModal.style.display = 'none';
-            }
-        });
-
-        resetPasswordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('resetEmail').value;
             
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // 顯示載入中
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
             try {
-                await firebase.auth().sendPasswordResetEmail(email);
-                resetMessage.style.color = 'green';
-                resetMessage.textContent = '重置密碼連結已發送到您的信箱，請查收！';
+                // 使用Firebase進行登入驗證
+                await firebase.auth().signInWithEmailAndPassword(email, password);
                 
+                // 登入成功
+                loading.style.display = 'none';
+                successMessage.style.display = 'block';
+                
+                // 延遲後跳轉到主頁面
                 setTimeout(() => {
-                    forgotPasswordModal.style.display = 'none';
-                    resetPasswordForm.reset();
-                    resetMessage.textContent = '';
-                }, 3000);
+                    window.location.href = '/dashboard.html';  // 之後我們會創建這個頁面
+                }, 1000);
             } catch (error) {
-                resetMessage.style.color = 'red';
-                resetMessage.textContent = '發送失敗，請確認電子郵件是否正確。';
+                // 登入失敗
+                loading.style.display = 'none';
+                errorMessage.textContent = getErrorMessage(error.code);
+                errorMessage.style.display = 'block';
             }
+        });
+
+        // 錯誤訊息轉換
+        function getErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/invalid-email':
+                    return '無效的電子郵件格式';
+                case 'auth/user-disabled':
+                    return '此帳號已被停用';
+                case 'auth/user-not-found':
+                    return '找不到此用戶';
+                case 'auth/wrong-password':
+                    return '密碼錯誤';
+                default:
+                    return '登入失敗，請稍後再試';
+            }
+        }
+
+        // 註冊連結點擊處理
+        registerLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 之後我們會添加註冊功能
+            alert('註冊功能即將推出！');
         });
     </script>
 </body>
