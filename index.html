@@ -271,6 +271,89 @@
                 resetMessage.textContent = '發送失敗，請確認電子郵件是否正確。';
             }
         });
+        document.addEventListener('DOMContentLoaded', function() {
+  const loginForm = document.querySelector('form');
+  const emailInput = document.querySelector('input[type="email"]');
+  const passwordInput = document.querySelector('input[type="password"]');
+  const loginBtn = document.querySelector('button[type="submit"]');
+  const loadingMsg = document.querySelector('.loading-message');
+  const successMsg = document.querySelector('.success-message');
+  const errorMsg = document.querySelector('.error-message');
+  const resetLink = document.querySelector('.reset-password-link');
+  const resetModal = document.querySelector('.modal');
+  const resetForm = document.querySelector('.modal form');
+  const resetEmailInput = document.querySelector('.modal input[type="email"]');
+  const resetCloseBtn = document.querySelector('.modal-close');
+
+  // 檢查用戶是否已登入
+  checkAuthState(user => {
+    if (user) {
+      // 已登入，重定向到儀表板
+      window.location.href = 'dashboard.html';
+    }
+  });
+
+  // 處理登入表單提交
+  loginForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    
+    // 顯示載入中訊息
+    loginBtn.disabled = true;
+    loadingMsg.style.display = 'block';
+    
+    loginUser(email, password)
+      .then(() => {
+        // 登入成功
+        successMsg.style.display = 'block';
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1000);
+      })
+      .catch(error => {
+        // 登入失敗
+        errorMsg.textContent = error.message;
+        errorMsg.style.display = 'block';
+        loadingMsg.style.display = 'none';
+        loginBtn.disabled = false;
+      });
+  });
+
+  // 重置密碼彈窗
+  if (resetLink) {
+    resetLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      resetModal.style.display = 'flex';
+    });
+  }
+
+  // 關閉重置密碼彈窗
+  if (resetCloseBtn) {
+    resetCloseBtn.addEventListener('click', function() {
+      resetModal.style.display = 'none';
+    });
+  }
+
+  // 處理重置密碼表單
+  if (resetForm) {
+    resetForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = resetEmailInput.value;
+      
+      resetPassword(email)
+        .then(() => {
+          alert('密碼重置連結已發送到您的郵箱');
+          resetModal.style.display = 'none';
+        })
+        .catch(error => {
+          alert('錯誤: ' + error.message);
+        });
+    });
+  }
+});
     </script>
 </body>
 </html>
